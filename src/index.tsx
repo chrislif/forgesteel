@@ -16,6 +16,7 @@ import { createRoot } from 'react-dom/client';
 import localforage from 'localforage';
 
 import './index.scss';
+import { ThemeProvider } from './components/main/theme-provider.tsx';
 
 const promises = [
 	localforage.getItem<Hero[]>('forgesteel-heroes'),
@@ -115,14 +116,16 @@ Promise.all(promises).then(results => {
 	createRoot(document.getElementById('root')!).render(
 		<StrictMode>
 			<HashRouter>
-				<Main
-					heroes={heroes}
-					homebrewSourcebooks={sourcebooks}
-					hiddenSourcebookIDs={hiddenSourcebookIDs}
-					playbook={playbook}
-					session={session}
-					options={options}
-				/>
+				<ThemeProvider>
+					<Main
+						heroes={heroes}
+						homebrewSourcebooks={sourcebooks}
+						hiddenSourcebookIDs={hiddenSourcebookIDs}
+						playbook={playbook}
+						session={session}
+						options={options}
+					/>
+				</ThemeProvider>
 			</HashRouter>
 		</StrictMode>
 	);

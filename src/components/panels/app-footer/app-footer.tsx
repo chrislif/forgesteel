@@ -3,6 +3,7 @@ import { BookOutlined, PlayCircleOutlined, ReadOutlined, TeamOutlined } from '@a
 import { ErrorBoundary } from '../../controls/error-boundary/error-boundary';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useNavigation } from '../../../hooks/use-navigation';
+import { ThemeToggle } from '../../controls/theme-toggle/theme-toggle';
 
 import './app-footer.scss';
 
@@ -54,6 +55,7 @@ export const AppFooter = (props: Props) => {
 						<Badge dot={props.highlightAbout}>
 							<Button onClick={props.showAbout}>About</Button>
 						</Badge>
+						<ThemeToggle />
 					</div>
 				</div>
 			</ErrorBoundary>
