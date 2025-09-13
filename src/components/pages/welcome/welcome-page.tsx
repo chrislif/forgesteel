@@ -1,5 +1,5 @@
 import { BookOutlined, PlayCircleOutlined, ReadOutlined, TeamOutlined } from '@ant-design/icons';
-import { Button, Flex, Segmented } from 'antd';
+import { Button, Flex, Segmented, Typography } from 'antd';
 import { AppFooter } from '../../panels/app-footer/app-footer';
 import { AppHeader } from '../../panels/app-header/app-header';
 import { ErrorBoundary } from '../../controls/error-boundary/error-boundary';
@@ -9,6 +9,8 @@ import { useNavigation } from '../../../hooks/use-navigation';
 import { useState } from 'react';
 
 import './welcome-page.scss';
+
+const { Text, Title } = Typography;
 
 interface Props {
 	highlightAbout: boolean;
@@ -177,10 +179,10 @@ export const WelcomePage = (props: Props) => {
 					<AppHeader showDirectory={props.showDirectory} />
 					<div className='welcome-page-content'>
 						<div className='welcome-column'>
-							<HeaderText level={1}>Welcome to FORGE STEEL</HeaderText>
-							<div className='ds-text'>
+							<Title type='secondary'>Welcome to FORGE STEEL</Title>
+							<Text type='secondary'>
 								<b>FORGE STEEL</b> is an app for <b>DRAW STEEL</b> players, directors, and content creators.
-							</div>
+							</Text>
 							<Flex justify='center' style={{ margin: '15px 0 10px 0' }}>
 								<Segmented
 									options={[

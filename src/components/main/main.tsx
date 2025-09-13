@@ -1,7 +1,7 @@
 import { Adventure, AdventurePackage } from '../../models/adventure';
 import { Navigate, Route, Routes } from 'react-router';
 import { Playbook, PlaybookElementKind } from '../../models/playbook';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useContext, createContext } from 'react';
 import { Sourcebook, SourcebookElementKind } from '../../models/sourcebook';
 import { Spin, notification } from 'antd';
 import { Ability } from '../../models/ability';
@@ -82,6 +82,7 @@ import localforage from 'localforage';
 import { useErrorListener } from '../../hooks/use-error-listener';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { useNavigation } from '../../hooks/use-navigation';
+import { ThemeMode, ThemeProvider } from '../../theme/theme-provider';
 
 import './main.scss';
 
@@ -92,7 +93,18 @@ interface Props {
 	homebrewSourcebooks: Sourcebook[];
 	hiddenSourcebookIDs: string[];
 	options: Options;
+	theme: ThemeMode;
 }
+
+interface AppContextProps {
+	theme: ThemeMode;
+	setTheme: (theme: ThemeMode) => void
+}
+
+export const AppContext = createContext<AppContextProps>({
+	theme: 'system',
+	setTheme: () => {},
+});
 
 export const Main = (props: Props) => {
 	const isSmall = useMediaQuery('(max-width: 1000px)');
@@ -110,6 +122,7 @@ export const Main = (props: Props) => {
 		}
 		return opts;
 	});
+	const [ theme, setTheme ] = useState<ThemeMode>(props.theme);
 	const [ errors, setErrors ] = useState<ErrorEvent[]>([]);
 	const [ directory, setDirectory ] = useState<ReactNode>(null);
 	const [ drawer, setDrawer ] = useState<ReactNode>(null);
@@ -236,6 +249,22 @@ export const Main = (props: Props) => {
 				}
 			);
 	};
+
+	const persistTheme = (theme: ThemeMode) => {
+		return localforage
+			.setItem<ThemeMode>('forgesteel-theme', theme)
+			.then(
+				setTheme,
+				err => {
+					console.error(err);
+					notify.error({
+						message: 'Error saving theme',
+						description: err,
+						placement: 'top'
+					});
+				}
+			)
+	}
 
 	// #endregion
 
@@ -1558,314 +1587,321 @@ export const Main = (props: Props) => {
 	try {
 		return (
 			<ErrorBoundary>
-				<Routes>
-					<Route
-						path='/'
-						element={
-							<MainLayout
-								section='hero'
-								directory={directory}
-								drawer={drawer}
-								setDirectory={setDirectory}
-								setDrawer={setDrawer}
-							/>
-						}
-					>
-						<Route
-							index={true}
-							element={
-								<WelcomePage
-									showDirectory={showDirectoryPane}
-									highlightAbout={errors.length > 0}
-									showAbout={showAbout}
-									showRoll={showRoll}
-									showReference={showReference}
+				<AppContext.Provider value={{
+					theme,
+					setTheme: persistTheme
+				}}>
+					<ThemeProvider>
+						<Routes>
+							<Route
+								path='/'
+								element={
+									<MainLayout
+										section='hero'
+										directory={directory}
+										drawer={drawer}
+										setDirectory={setDirectory}
+										setDrawer={setDrawer}
+									/>
+								}
+							>
+								<Route
+									index={true}
+									element={
+										<WelcomePage
+											showDirectory={showDirectoryPane}
+											highlightAbout={errors.length > 0}
+											showAbout={showAbout}
+											showRoll={showRoll}
+											showReference={showReference}
+										/>
+									}
 								/>
-							}
-						/>
-						<Route path='hero'>
-							<Route
-								index={true}
-								path=':folder?'
-								element={
-									<HeroListPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										options={props.options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										addHero={createHero}
-										importHero={importHero}
-										showParty={onShowParty}
+								<Route path='hero'>
+									<Route
+										index={true}
+										path=':folder?'
+										element={
+											<HeroListPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												options={props.options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												addHero={createHero}
+												importHero={importHero}
+												showParty={onShowParty}
+											/>
+										}
 									/>
-								}
-							/>
-							<Route
-								path='view/:heroID'
-								element={
-									<HeroViewPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										options={options}
-										setOptions={persistOptions}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										exportHero={exportHero}
-										exportPdf={exportHeroPdf}
-										exportStandardAbilities={exportStandardAbilities}
-										copyHero={copyHero}
-										deleteHero={deleteHero}
-										showAncestry={ancestry => onSelectLibraryElement(ancestry, 'ancestry')}
-										showCulture={culture => onSelectLibraryElement(culture, 'culture')}
-										showCareer={career => onSelectLibraryElement(career, 'career')}
-										showClass={heroClass => onSelectLibraryElement(heroClass, 'class')}
-										showComplication={complication => onSelectLibraryElement(complication, 'complication')}
-										showDomain={domain => onSelectLibraryElement(domain, 'domain')}
-										showKit={kit => onSelectLibraryElement(kit, 'kit')}
-										showTitle={title => onSelectLibraryElement(title, 'title')}
-										showMonster={onSelectMonster}
-										showFollower={onSelectFollower}
-										showCharacteristic={onSelectCharacteristic}
-										showFeature={onSelectFeature}
-										showAbility={onSelectAbility}
-										showHeroState={onShowHeroState}
-										showReference={onShowReference}
-										setNotes={setNotes}
+									<Route
+										path='view/:heroID'
+										element={
+											<HeroViewPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												options={options}
+												setOptions={persistOptions}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												exportHero={exportHero}
+												exportPdf={exportHeroPdf}
+												exportStandardAbilities={exportStandardAbilities}
+												copyHero={copyHero}
+												deleteHero={deleteHero}
+												showAncestry={ancestry => onSelectLibraryElement(ancestry, 'ancestry')}
+												showCulture={culture => onSelectLibraryElement(culture, 'culture')}
+												showCareer={career => onSelectLibraryElement(career, 'career')}
+												showClass={heroClass => onSelectLibraryElement(heroClass, 'class')}
+												showComplication={complication => onSelectLibraryElement(complication, 'complication')}
+												showDomain={domain => onSelectLibraryElement(domain, 'domain')}
+												showKit={kit => onSelectLibraryElement(kit, 'kit')}
+												showTitle={title => onSelectLibraryElement(title, 'title')}
+												showMonster={onSelectMonster}
+												showFollower={onSelectFollower}
+												showCharacteristic={onSelectCharacteristic}
+												showFeature={onSelectFeature}
+												showAbility={onSelectAbility}
+												showHeroState={onShowHeroState}
+												showReference={onShowReference}
+												setNotes={setNotes}
+											/>
+										}
 									/>
-								}
-							/>
-							<Route
-								path='edit/:heroID'
-								element={<Navigate to='start' replace={true} />}
-							/>
-							<Route
-								path='edit/:heroID/:page'
-								element={
-									<HeroEditPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										saveChanges={saveHero}
-										importSourcebook={sourcebook => {
-											const copy = Utils.copy(homebrewSourcebooks);
-											copy.push(sourcebook);
-											persistHomebrewSourcebooks(copy);
-										}}
+									<Route
+										path='edit/:heroID'
+										element={<Navigate to='start' replace={true} />}
 									/>
-								}
-							/>
-							<Route
-								path='sheet/:heroID'
-								element={
-									<HeroSheetPreviewPage
-										heroes={heroes}
-										sourcebooks={[ SourcebookData.core, SourcebookData.orden, ...homebrewSourcebooks ]}
-										options={options}
-										setOptions={persistOptions}
+									<Route
+										path='edit/:heroID/:page'
+										element={
+											<HeroEditPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												saveChanges={saveHero}
+												importSourcebook={sourcebook => {
+													const copy = Utils.copy(homebrewSourcebooks);
+													copy.push(sourcebook);
+													persistHomebrewSourcebooks(copy);
+												}}
+											/>
+										}
 									/>
-								}
-							/>
-						</Route>
-						<Route path='library'>
-							<Route
-								index={true}
-								element={<Navigate to='ancestry' replace={true} />}
-							/>
-							<Route
-								path=':kind'
-								element={
-									<LibraryListPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										options={options}
-										hiddenSourcebookIDs={hiddenSourcebookIDs}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										showSourcebooks={showSourcebooks}
-										setOptions={persistOptions}
-										createElement={(kind, sourcebookID) => createLibraryElement(kind, sourcebookID, null)}
-										importElement={importLibraryElement}
+									<Route
+										path='sheet/:heroID'
+										element={
+											<HeroSheetPreviewPage
+												heroes={heroes}
+												sourcebooks={[ SourcebookData.core, SourcebookData.orden, ...homebrewSourcebooks ]}
+												options={options}
+												setOptions={persistOptions}
+											/>
+										}
 									/>
-								}
-							/>
-							<Route
-								path='view/:kind/:elementID/:subElementID?'
-								element={
-									<LibraryViewPage
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										playbook={playbook}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										createElement={createLibraryElement}
-										export={exportLibraryElement}
-										copy={copyLibraryElement}
-										copySubElement={copyLibrarySubElement}
-										delete={deleteLibraryElement}
+								</Route>
+								<Route path='library'>
+									<Route
+										index={true}
+										element={<Navigate to='ancestry' replace={true} />}
 									/>
-								}
-							/>
-							<Route
-								path='edit/:kind/:sourcebookID/:elementID/:subElementID?'
-								element={
-									<LibraryEditPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										showMonster={onSelectMonster}
-										saveChanges={saveLibraryElement}
-										setOptions={persistOptions}
+									<Route
+										path=':kind'
+										element={
+											<LibraryListPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												options={options}
+												hiddenSourcebookIDs={hiddenSourcebookIDs}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												showSourcebooks={showSourcebooks}
+												setOptions={persistOptions}
+												createElement={(kind, sourcebookID) => createLibraryElement(kind, sourcebookID, null)}
+												importElement={importLibraryElement}
+											/>
+										}
 									/>
-								}
-							/>
-						</Route>
-						<Route path='playbook'>
-							<Route
-								index={true}
-								element={<Navigate to='adventure' replace={true} />}
-							/>
-							<Route
-								path=':kind'
-								element={
-									<PlaybookListPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										playbook={playbook}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										createElement={createPlaybookElement}
-										importElement={importPlaybookElement}
-										importAdventurePackage={importAdventurePackage}
-										setOptions={persistOptions}
+									<Route
+										path='view/:kind/:elementID/:subElementID?'
+										element={
+											<LibraryViewPage
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												playbook={playbook}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												createElement={createLibraryElement}
+												export={exportLibraryElement}
+												copy={copyLibraryElement}
+												copySubElement={copyLibrarySubElement}
+												delete={deleteLibraryElement}
+											/>
+										}
 									/>
-								}
-							/>
-							<Route
-								path='view/:kind/:elementID'
-								element={
-									<PlaybookViewPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										playbook={playbook}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										showEncounterTools={showEncounterTools}
-										export={exportPlaybookElement}
-										start={startPlaybookElement}
-										copy={copyPlaybookElement}
-										delete={deletePlaybookElement}
-										setOptions={persistOptions}
+									<Route
+										path='edit/:kind/:sourcebookID/:elementID/:subElementID?'
+										element={
+											<LibraryEditPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												showMonster={onSelectMonster}
+												saveChanges={saveLibraryElement}
+												setOptions={persistOptions}
+											/>
+										}
 									/>
-								}
-							/>
-							<Route
-								path='edit/:kind/:elementID'
-								element={
-									<PlaybookEditPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										playbook={playbook}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										showMonster={onSelectMonster}
-										showTerrain={onSelectTerrain}
-										saveChanges={savePlaybookElement}
-										setOptions={persistOptions}
+								</Route>
+								<Route path='playbook'>
+									<Route
+										index={true}
+										element={<Navigate to='adventure' replace={true} />}
 									/>
-								}
-							/>
-						</Route>
-						<Route path='session'>
-							<Route
-								index={true}
-								element={<Navigate to='director' replace={true} />}
-							/>
-							<Route
-								path='director'
-								element={
-									<SessionDirectorPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										playbook={playbook}
-										session={session}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showDirectory={showDirectoryPane}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										showPlayerView={showPlayerView}
-										startEncounter={startEncounter}
-										startMontage={startMontage}
-										startNegotiation={startNegotiation}
-										startMap={startMap}
-										startCounter={startCounter}
-										updateHero={persistHero}
-										updateEncounter={updateEncounter}
-										updateMontage={updateMontage}
-										updateNegotiation={updateNegotiation}
-										updateMap={updateMap}
-										updateCounter={updateCounter}
-										finishSessionElement={finishSessionElement}
-										setOptions={persistOptions}
+									<Route
+										path=':kind'
+										element={
+											<PlaybookListPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												playbook={playbook}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												createElement={createPlaybookElement}
+												importElement={importPlaybookElement}
+												importAdventurePackage={importAdventurePackage}
+												setOptions={persistOptions}
+											/>
+										}
 									/>
-								}
-							/>
-							<Route
-								path='player'
-								element={
-									<SessionPlayerPage
-										heroes={heroes}
-										sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
-										playbook={playbook}
-										session={session}
-										options={options}
-										highlightAbout={errors.length > 0}
-										showAbout={showAbout}
-										showRoll={showRoll}
-										showReference={showReference}
-										setOptions={persistOptions}
+									<Route
+										path='view/:kind/:elementID'
+										element={
+											<PlaybookViewPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												playbook={playbook}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												showEncounterTools={showEncounterTools}
+												export={exportPlaybookElement}
+												start={startPlaybookElement}
+												copy={copyPlaybookElement}
+												delete={deletePlaybookElement}
+												setOptions={persistOptions}
+											/>
+										}
 									/>
-								}
-							/>
-						</Route>
-					</Route>
-				</Routes>
-				{notifyContext}
-				<Spin spinning={spinning} size='large' fullscreen={true} />
+									<Route
+										path='edit/:kind/:elementID'
+										element={
+											<PlaybookEditPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												playbook={playbook}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												showMonster={onSelectMonster}
+												showTerrain={onSelectTerrain}
+												saveChanges={savePlaybookElement}
+												setOptions={persistOptions}
+											/>
+										}
+									/>
+								</Route>
+								<Route path='session'>
+									<Route
+										index={true}
+										element={<Navigate to='director' replace={true} />}
+									/>
+									<Route
+										path='director'
+										element={
+											<SessionDirectorPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												playbook={playbook}
+												session={session}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showDirectory={showDirectoryPane}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												showPlayerView={showPlayerView}
+												startEncounter={startEncounter}
+												startMontage={startMontage}
+												startNegotiation={startNegotiation}
+												startMap={startMap}
+												startCounter={startCounter}
+												updateHero={persistHero}
+												updateEncounter={updateEncounter}
+												updateMontage={updateMontage}
+												updateNegotiation={updateNegotiation}
+												updateMap={updateMap}
+												updateCounter={updateCounter}
+												finishSessionElement={finishSessionElement}
+												setOptions={persistOptions}
+											/>
+										}
+									/>
+									<Route
+										path='player'
+										element={
+											<SessionPlayerPage
+												heroes={heroes}
+												sourcebooks={SourcebookLogic.getSourcebooks(homebrewSourcebooks)}
+												playbook={playbook}
+												session={session}
+												options={options}
+												highlightAbout={errors.length > 0}
+												showAbout={showAbout}
+												showRoll={showRoll}
+												showReference={showReference}
+												setOptions={persistOptions}
+											/>
+										}
+									/>
+								</Route>
+							</Route>
+						</Routes>
+						{notifyContext}
+						<Spin spinning={spinning} size='large' fullscreen={true} />
+					</ThemeProvider>
+				</AppContext.Provider>
 			</ErrorBoundary>
 		);
 	} catch (ex) {
@@ -1873,3 +1909,10 @@ export const Main = (props: Props) => {
 		return null;
 	}
 };
+
+export function useAppContext() {
+    const ctx = useContext(AppContext);
+    if (!ctx) throw new Error("useAppContext must be used within AppContext");
+    return ctx;
+}
+

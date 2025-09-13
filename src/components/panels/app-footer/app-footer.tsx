@@ -1,9 +1,9 @@
-import { Badge, Button, Divider, Flex } from 'antd';
+import { Badge, Button, Segmented, Flex } from 'antd';
 import { BookOutlined, PlayCircleOutlined, ReadOutlined, TeamOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from '../../controls/error-boundary/error-boundary';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useNavigation } from '../../../hooks/use-navigation';
-import { ThemeToggle } from '../../controls/theme-toggle/theme-toggle';
+import { ThemeToggle } from '../../../theme/theme-toggle';
 
 import './app-footer.scss';
 
@@ -21,33 +21,47 @@ export const AppFooter = (props: Props) => {
 	const isSmall = useMediaQuery('(max-width: 1000px)');
 	const navigation = useNavigation();
 
+	const onNavigateChange = (navValue: Props["page"]) => {
+		if (navValue !== props.page) {
+			switch(navValue) {
+				case "welcome":
+					navigation.goToWelcome();
+					break;
+				case "heroes":
+					navigation.goToHeroList();
+					break;
+				case "library":
+					navigation.goToLibraryList('ancestry');
+					break;
+				case "playbook":
+					navigation.goToPlaybookList('adventure');
+					break;
+				case "session":
+					navigation.goToSession();
+					break;
+			}
+		}
+	}
+
 	try {
 		return (
 			<ErrorBoundary>
-				<div className='app-footer'>
+				<Flex className='app-footer'>
 					{
 						isSmall || (props.page === 'player-view') ?
 							<div />
 							:
-							<Flex className='navigation-buttons-panel' align='center'>
-								<Button type='text' className={props.page === 'welcome' ? 'selected' : ''} icon={<img className='logo-icon' src={shield} />} onClick={() => navigation.goToWelcome()} />
-								<Divider type='vertical' />
-								<Button type='text' className={props.page === 'heroes' ? 'selected' : ''} icon={<TeamOutlined />} onClick={() => navigation.goToHeroList()}>
-									Heroes
-								</Button>
-								<Divider type='vertical' />
-								<Button type='text' className={props.page === 'library' ? 'selected' : ''} icon={<BookOutlined />} onClick={() => navigation.goToLibraryList('ancestry')}>
-									Library
-								</Button>
-								<Divider type='vertical' />
-								<Button type='text' className={props.page === 'playbook' ? 'selected' : ''} icon={<ReadOutlined />} onClick={() => navigation.goToPlaybookList('adventure')}>
-									Playbook
-								</Button>
-								<Divider type='vertical' />
-								<Button type='text' className={props.page === 'session' ? 'selected' : ''} icon={<PlayCircleOutlined />} onClick={() => navigation.goToSession()}>
-									Session
-								</Button>
-							</Flex>
+							<Segmented<Props["page"]> 
+								defaultValue={props.page}
+								options={[
+									{ value: 'welcome', label: '', icon: <img className='logo-icon' src={shield} /> },
+									{ value: 'heroes', label: 'Heroes', icon: <TeamOutlined /> },
+									{ value: 'library', label: 'Library', icon: <BookOutlined /> },
+									{ value: 'playbook', label: 'Playbook', icon: <ReadOutlined /> },
+									{ value: 'session', label: 'Session', icon: <PlayCircleOutlined /> }
+								]}
+								onChange={onNavigateChange}>
+							</Segmented>
 					}
 					<div className='action-buttons-panel'>
 						<Button onClick={props.showReference}>Reference</Button>
@@ -57,7 +71,7 @@ export const AppFooter = (props: Props) => {
 						</Badge>
 						<ThemeToggle />
 					</div>
-				</div>
+				</Flex>
 			</ErrorBoundary>
 		);
 	} catch (ex) {

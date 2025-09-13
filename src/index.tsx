@@ -16,7 +16,7 @@ import { createRoot } from 'react-dom/client';
 import localforage from 'localforage';
 
 import './index.scss';
-import { ThemeProvider } from './components/main/theme-provider.tsx';
+import { ThemeMode } from './theme/theme-provider.tsx';
 
 const promises = [
 	localforage.getItem<Hero[]>('forgesteel-heroes'),
@@ -24,7 +24,8 @@ const promises = [
 	localforage.getItem<string[]>('forgesteel-hidden-setting-ids'),
 	localforage.getItem<Playbook>('forgesteel-playbook'),
 	localforage.getItem<Playbook>('forgesteel-session'),
-	localforage.getItem<Options[]>('forgesteel-options')
+	localforage.getItem<Options[]>('forgesteel-options'),
+	localforage.getItem<ThemeMode>('forgesteel-theme')
 ];
 
 Promise.all(promises).then(results => {
@@ -113,19 +114,27 @@ Promise.all(promises).then(results => {
 
 	// #endregion
 
+	// #region Theme
+
+	let theme = results[6] as ThemeMode | null;
+	if (!theme) {
+		theme = 'system';
+	}
+
+	// #endregion
+
 	createRoot(document.getElementById('root')!).render(
 		<StrictMode>
 			<HashRouter>
-				<ThemeProvider>
-					<Main
-						heroes={heroes}
-						homebrewSourcebooks={sourcebooks}
-						hiddenSourcebookIDs={hiddenSourcebookIDs}
-						playbook={playbook}
-						session={session}
-						options={options}
-					/>
-				</ThemeProvider>
+				<Main
+					heroes={heroes}
+					homebrewSourcebooks={sourcebooks}
+					hiddenSourcebookIDs={hiddenSourcebookIDs}
+					playbook={playbook}
+					session={session}
+					options={options}
+					theme={theme}
+				/>
 			</HashRouter>
 		</StrictMode>
 	);
